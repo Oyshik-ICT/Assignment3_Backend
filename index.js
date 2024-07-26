@@ -93,23 +93,51 @@ app.post('/hotels', upload.array('images', 5), async (req, res) => {
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-app.get('/hotels/:slug/images', async (req, res) => {
+// app.get('/hotels/:slug', async (req, res) => {
+//   const { slug } = req.params;
+
+//   try {
+//     const query = 'SELECT images FROM Hotels WHERE slug = $1';
+//     const result = await pool.query(query, [slug]);
+
+//     if (result.rows.length === 0) {
+//       return res.status(404).json({ error: 'Hotel not found' });
+//     }
+
+//     res.json(result.rows[0]); // Send back the image paths
+//   } catch (error) {
+//     console.error('Error retrieving images:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// });
+
+
+app.get('/hotels/:slug', async (req, res) => {
   const { slug } = req.params;
 
   try {
-    const query = 'SELECT images FROM Hotels WHERE slug = $1';
+    const query = `
+      SELECT 
+        title, images,guest_count, bedroom_count, bathroom_count,
+        host_information, description, amenities, address
+      FROM Hotels 
+      WHERE slug = $1
+    `;
     const result = await pool.query(query, [slug]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Hotel not found' });
     }
 
-    res.json(result.rows[0].images); // Send back the image paths
+    res.json(result.rows[0]); // Send back the hotel details
   } catch (error) {
-    console.error('Error retrieving images:', error);
+    console.error('Error retrieving hotel details:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+
+
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
