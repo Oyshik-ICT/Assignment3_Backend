@@ -93,23 +93,68 @@ app.post('/hotels', upload.array('images', 5), async (req, res) => {
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// app.get('/hotels/:slug', async (req, res) => {
-//   const { slug } = req.params;
 
-//   try {
-//     const query = 'SELECT images FROM Hotels WHERE slug = $1';
-//     const result = await pool.query(query, [slug]);
+// Route to handle room creation with image upload
+app.post('/Limpa-Peru/unique-room', upload.array('room_images', 5), async (req, res) => {
+  try {
+    const {
+      room_slug,
+      hotel_slug,
+      room_title,
+      bedroom_count
+    } = req.body;
 
-//     if (result.rows.length === 0) {
-//       return res.status(404).json({ error: 'Hotel not found' });
-//     }
+    // Process uploaded images for the room
+    const roomImagePaths = req.files.map(file => file.path);
 
-//     res.json(result.rows[0]); // Send back the image paths
-//   } catch (error) {
-//     console.error('Error retrieving images:', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// });
+    // Insert room data into the database
+    const query = `
+      INSERT INTO Rooms (
+        room_slug, hotel_slug, room_image, room_title, bedroom_count
+      )
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `;
+
+    const values = [
+      room_slug,
+      hotel_slug,
+      roomImagePaths,
+      room_title,
+      parseInt(bedroom_count)
+    ];
+
+    const result = await pool.query(query, values);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating room:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/hotels/:slug/rooms', async (req, res) => {
+  const { slug } = req.params;
+
+  try {
+    const query = `
+      SELECT room_slug, room_image, room_title, bedroom_count
+      FROM Rooms
+      WHERE hotel_slug = $1
+    `;
+    const result = await pool.query(query, [slug]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Rooms not found for this hotel' });
+    }
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error retrieving rooms:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
 
 
 app.get('/hotels/:slug', async (req, res) => {
